@@ -162,6 +162,9 @@ PictureBitrateMaxDCISafetyMargin = 2.0 # percent
 PictureBitrateMaxDCISafe = ( PictureBitrateMaxDCI / 100 * ( 100 - PictureBitrateMaxDCISafetyMargin ) ).round( 2 )
 PictureBitrateMaxHFR = 400.0 # Mb/s
 
+TerminalDefaultLines = 20
+TerminalDefaultCols = 166
+
 # Internal
 [
   'optparse',
@@ -2153,10 +2156,13 @@ end
 
 def detect_terminal_size
   if command_exists?( 'tput' )
-    { :columns => `tput cols`.to_i, :lines => `tput lines`.to_i }
-  else
-    nil
+    nb_columns = `tput cols`.to_i
+    nb_lines = `tput lines`.to_i
+    if nb_columns > 0 and nb_lines > 0
+        return { :columns => cols, :lines => lines }
+    end
   end
+  return { :columns => TerminalDefaultCols, :lines => TerminalDefaultLines }
 end
 
 def with_etabar( args, options, etabar_title, etabar_pbar_width, etabar_looks_like, logger, &block )
