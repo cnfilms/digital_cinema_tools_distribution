@@ -85,7 +85,7 @@ asdcplib_build_dir="$asdcplib_dir/asdcplib-$asdcplib_version"
 asdcplib_install_dir=$bindir/asdcplib
 
 # Digital cinema tools distribution:
-dist_url="https://github.com/wolfgangw/digital_cinema_tools_distribution.git"
+dist_url="https://github.com/cnfilms/digital_cinema_tools_distribution.git"
 dist_dir=$libdir/digital_cinema_tools_distribution
 
 errors=()
