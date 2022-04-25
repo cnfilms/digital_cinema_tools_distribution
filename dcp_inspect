@@ -19,7 +19,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 AppName = File.basename( $0 )
-AppVersion = 'v1.2019.08.07'
+AppVersion = 'v1.2019.08.07.. CINEGO 2021.04.22'
 AppStartSeconds = Time.now
 #
 # dcp_inspect is a tool for deep inspection and validation of digital
@@ -157,7 +157,8 @@ RUBY_NAME_ERROR = 24
 RUBY_ARGUMENT_ERROR = 25
 
 # Constants
-PictureBitrateMaxDCI = 250.0 # Mb/s
+# CINEGO Edit : 275.0 instead of 250.0
+PictureBitrateMaxDCI = 275.0 # Mb/s
 PictureBitrateMaxDCISafetyMargin = 2.0 # percent
 PictureBitrateMaxDCISafe = ( PictureBitrateMaxDCI / 100 * ( 100 - PictureBitrateMaxDCISafetyMargin ) ).round( 2 )
 PictureBitrateMaxHFR = 400.0 # Mb/s
@@ -208,7 +209,7 @@ class Options
     options.check_hashes_limit = :no_limit
     options.image_analysis = false # not yet implemented
     options.audio_analysis = true
-    options.validate = true
+    options.validate = false
     options.as_asset_store = false
     options.verbosity = [ 'debug', 'dev' ]
     options.logfile = nil
@@ -471,7 +472,7 @@ class Ramdisk
     when /darwin/
       out, err, status = Open3.capture3( "hdiutil eject #{ self.path }" )
     else
-      out, err, status = Open3.capture3( "rm -rf #{ self.path }" ) 
+      out, err, status = Open3.capture3( "rm -rf #{ self.path }" )
     end
   end
 
@@ -583,7 +584,7 @@ def audio_characteristics( ramdisk, asset_file, channel_count, entry_point, dura
     mkfifo( ramdisk, fifo )
   end
 
-  unwrap_call = "asdcp-unwrap -1 -f #{ entry_point } -d #{ duration } #{ key ? '-k ' + key : '' } #{ Shellwords.escape asset_file } #{ asdcp_prefix_token } 2>/dev/null" 
+  unwrap_call = "asdcp-unwrap -1 -f #{ entry_point } -d #{ duration } #{ key ? '-k ' + key : '' } #{ Shellwords.escape asset_file } #{ asdcp_prefix_token } 2>/dev/null"
   @logger.debug "unwrap call: #{unwrap_call}"
   pid = Process.spawn( unwrap_call )
   Process.detach pid
@@ -591,7 +592,7 @@ def audio_characteristics( ramdisk, asset_file, channel_count, entry_point, dura
 
   system "ls -al #{ramdisk.path}"
 
-  sox_call = "sox -t wavpcm -M #{ fifo_tokens.join( ' ' ) } -n stats" 
+  sox_call = "sox -t wavpcm -M #{ fifo_tokens.join( ' ' ) } -n stats"
   @logger.debug "sox call: #{sox_call}"
   out, err, status = Open3.capture3( sox_call )
 
@@ -892,7 +893,7 @@ end
 
 
 # lib/timecode-ticks_tc.rb (Julik's timecode -- https://github.com/guerilla-di/timecode + parse_with_ticks)
-# Timecode is a convenience object for calculating SMPTE timecode natively. 
+# Timecode is a convenience object for calculating SMPTE timecode natively.
 # The promise is that you only have to store two values to know the timecode - the amount
 # of frames and the framerate. An additional perk might be to save the dropframeness,
 # but we avoid that at this point.
@@ -1057,10 +1058,10 @@ class Timecode
       parse(tc_with_frameno, fps)
     end
 
-    # Parse a timecode with ticks of a second instead of frames. A 'tick' is defined as 
+    # Parse a timecode with ticks of a second instead of frames. A 'tick' is defined as
     # 4 msec and has a range of 0 to 249. This format can show up in subtitle files for digital cinema
     def parse_with_ticks(tc_with_ticks, fps = DEFAULT_FPS)
-      ticks_expr = /(\d{3})$/ 
+      ticks_expr = /(\d{3})$/
       ticks_part = (tc_with_ticks.scan(ticks_expr)[0][0]).to_i
 
       seconds_per_frame = 1.0 / fps
@@ -1081,7 +1082,7 @@ class Timecode
     # Some systems (like SGIs) and DPX format store timecode as unsigned integer, bit-packed. This method
     # unpacks such an integer into a timecode.
     def from_uint(uint, fps = DEFAULT_FPS)
-      tc_elements = (0..7).to_a.reverse.map do | multiplier | 
+      tc_elements = (0..7).to_a.reverse.map do | multiplier |
         ((uint >> (multiplier * 4)) & 0x0F)
       end.join.scan(/(\d{2})/).flatten.map{|e| e.to_i}
 
@@ -1149,7 +1150,7 @@ class Timecode
     elements = (("%02d" * 4) % [hours,minutes,seconds,frames]).split(//).map{|e| e.to_i }
     uint = 0
     elements.reverse.each_with_index do | p, i |
-      uint |= p << 4 * i 
+      uint |= p << 4 * i
     end
     uint
   end
@@ -1160,7 +1161,7 @@ class Timecode
   end
 
   # Convert to different framerate based on the total frames. Therefore,
-  # 1 second of PAL video will convert to 25 frames of NTSC (this 
+  # 1 second of PAL video will convert to 25 frames of NTSC (this
   # is suitable for PAL to film TC conversions and back).
   def convert(new_fps)
     self.class.new(@total, new_fps)
@@ -1224,7 +1225,7 @@ class Timecode
     self.class.new(@total + 1, @fps)
   end
 
-  # Get the number of times a passed timecode fits into this time span (if performed with Timecode) or 
+  # Get the number of times a passed timecode fits into this time span (if performed with Timecode) or
   # a Timecode that multiplied by arg will give this one
   def /(arg)
     arg.is_a?(Timecode) ?  (@total / arg.total) : self.class.new(@total / arg, @fps)
@@ -1234,7 +1235,7 @@ class Timecode
   def <=>(other_tc)
     if framerate_in_delta(fps, other_tc.fps)
       self.total <=> other_tc.total
-    else 
+    else
       raise WrongFramerate, "Cannot compare timecodes with different framerates"
     end
   end
@@ -1267,8 +1268,11 @@ class Timecode
     hrs = (mins/60).floor
     mins-= (hrs*60)
 
-    self.class.validate_atoms!(hrs, mins, secs, frames, @fps)
-
+    begin
+      self.class.validate_atoms!(hrs, mins, secs, frames, @fps)
+    rescue
+      #Cinego Edit : We don't need that error
+    end
     [hrs, mins, secs, frames]
   end
 
@@ -1630,10 +1634,12 @@ class DC_Signer_Crypto_Compliance
         case type
         when :smpte
           if cn_subject_roles.empty?
-            errors << 'Role title missing in CommonName field of leaf certificate subject name'
+            #CINEGO Edit : hints instead of errors
+            hints = 'Role title missing in CommonName field of leaf certificate subject name'
           else
-            errors << 'CS role missing in CommonName field of leaf certificate subject name' unless roles.include?( 'CS' )
-            errors << 'Superfluous roles present in CommonName field of leaf certificate subject name' unless roles.size == 1 and roles[ 0 ] == 'CS'
+            #CINEGO Edit : hints instead of errors
+            hints = 'CS role missing in CommonName field of leaf certificate subject name' unless roles.include?( 'CS' )
+            hints = 'Superfluous roles present in CommonName field of leaf certificate subject name' unless roles.size == 1 and roles[ 0 ] == 'CS'
           end
         when :interop
           # lax rules noop
@@ -2285,8 +2291,9 @@ def errors_signature_verification( errors, error_status, signature_result, id, f
     # While the signature might verify there could be problems
     # with dc specific certificate properties. Report those.
     if ! signature_result.crypto.errors[ :context ].values.flatten.empty?
-      errors << "#{ type_indicator } #{ id }: Signature: #{ signature_result.crypto.errors[ :context ].inspect }"
-      error_status = true
+      #CINEGO Edit : hints instead of errors
+      hints = "#{ type_indicator } #{ id }: Signature: #{ signature_result.crypto.errors[ :context ].inspect }"
+      #error_status = TRUE
     end
   else
     errors << "#{ type_indicator } #{ id }: Signature verification failure:\n\t#{ signature_result.messages.join( "\n\t" ) }"
@@ -2542,6 +2549,10 @@ end
 
 def font?( file )
   fh = File.open( file, 'r' )
+  # CINEGO Edit : On ajoute la clause "nulle"
+  if fh.read(4).nil?
+    return nil
+  end
   magic = fh.read( 4 ).unpack( 'H*' ).first
   fh.close
   case magic
@@ -2672,8 +2683,9 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
   # CPL:Id RFC-4122 compliant?
   if cpl_id !~ MStr::Uuid_rfc4122_re
     report << "CPL Id:           #{ cpl_id } [Not RFC-4122 compliant]"
-    errors << "CPL #{ cpl_id }: Value of CompositionPlaylist:Id is not RFC-4122 compliant"
-    cpl_errors = true
+    #CINEGO Edit
+    hints << "CPL #{ cpl_id }: Value of CompositionPlaylist:Id is not RFC-4122 compliant"
+    #cpl_errors = TRUE
   else
     report << "CPL Id:           #{ cpl_id }"
   end
@@ -2931,8 +2943,9 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
 
               # Check asset Id for RFC-4122 compliance. All assets except DCSubtitle require this
               if asset_id !~ MStr::Uuid_rfc4122_re
-                errors << "#{ cpl_reel }: Listed asset Id #{ asset_id } is not RFC-4122 compliant"
-                cpl_errors = true
+                #CINEGO Edit
+                hints << "#{ cpl_reel }: Listed asset Id #{ asset_id } is not RFC-4122 compliant"
+                #cpl_errors = TRUE
               end
 
               # Get asset edit rate early
@@ -2988,23 +3001,26 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
               # IntrinsicDuration / EntryPoint / Duration sane?
               sane_IntrinsicDuration_EntryPoint_Duration = true
               if intrinsic_duration - entry_point < duration
-                errors << "#{ cpl_reel }: Duration #{ duration } in #{ asset.node_name } does not compute: IntrinsicDuration #{ intrinsic_duration } - EntryPoint #{ entry_point } < Duration #{ duration }"
-                sane_IntrinsicDuration_EntryPoint_Duration = false
-                cpl_errors = true
+                #CINEGO Edit : hints instead of errors
+                hints << "#{ cpl_reel }: Duration #{ duration } in #{ asset.node_name } does not compute: IntrinsicDuration #{ intrinsic_duration } - EntryPoint #{ entry_point } < Duration #{ duration }"
+                #sane_IntrinsicDuration_EntryPoint_Duration = false
+                #cpl_errors = true
               end
               if entry_point >= intrinsic_duration
-                exceed_frames = entry_point + 1 - intrinsic_duration
-                errors << "#{ cpl_reel }: EntryPoint #{ entry_point } in #{ asset.node_name } exceeds IntrinsicDuration #{ intrinsic_duration } by #{ amount( 'frame', exceed_frames ) }"
-                sane_IntrinsicDuration_EntryPoint_Duration = false
-                cpl_errors = true
+                #CNEGO Edit : hints instead of errors
+		exceed_frames = entry_point + 1 - intrinsic_duration
+                hints << "#{ cpl_reel }: EntryPoint #{ entry_point } in #{ asset.node_name } exceeds IntrinsicDuration #{ intrinsic_duration } by #{ amount( 'frame', exceed_frames ) }"
+                #sane_IntrinsicDuration_EntryPoint_Duration = false
+                #cpl_errors = true
               end
               if intrinsic_duration != meta[ 'ContainerDuration' ].to_i
-                errors << "#{ cpl_reel }: IntrinsicDuration #{ intrinsic_duration } in #{ asset.node_name } does not match ContainerDuration #{ meta[ 'ContainerDuration' ].nil? ? '[NaN]' : meta[ 'ContainerDuration' ] } of asset #{ asset_id }"
-                cpl_errors = true
+                #CINEGO Edit
+                #hints instead of errors
+                hints << "#{ cpl_reel }: IntrinsicDuration #{ intrinsic_duration } in #{ asset.node_name } does not match ContainerDuration #{ meta[ 'ContainerDuration' ].nil? ? '[NaN]' : meta[ 'ContainerDuration' ] } of asset #{ asset_id }"
                 if meta[ 'ContainerDuration' ].to_i - entry_point < duration
-                  errors << "#{ cpl_reel }: Duration #{ duration } in #{ asset.node_name } does not compute: ContainerDuration #{ meta[ 'ContainerDuration' ] } of asset #{ asset_id } - EntryPoint #{ entry_point } < Duration #{ duration }"
+                  hints << "#{ cpl_reel }: Duration #{ duration } in #{ asset.node_name } does not compute: ContainerDuration #{ meta[ 'ContainerDuration' ] } of asset #{ asset_id } - EntryPoint #{ entry_point } < Duration #{ duration }"
                   sane_IntrinsicDuration_EntryPoint_Duration = false
-                  cpl_errors = true
+                  #cpl_errors = true
                 end
               end
               if sane_IntrinsicDuration_EntryPoint_Duration
@@ -3072,8 +3088,9 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
                   hints << "#{ cpl_reel }: #{ asset.node_name } has non-DCI pixel dimensions (#{ picture_dimensions }, #{ picture_dimensions_moniker })"
                 else
                   picture_dimensions_moniker = picture_dimensions
-                  errors << "#{ cpl_reel }: #{ asset.node_name } has non-DCI pixel dimensions (#{ picture_dimensions })"
-                  cpl_errors = true
+                  #CINEGO Edit : hints instead of errors
+                  hints << "#{ cpl_reel }: #{ asset.node_name } has non-DCI pixel dimensions (#{ picture_dimensions })"
+                  #cpl_errors = true
                 end
                 composition_picture_resolutions << picture_dimensions_moniker
 
@@ -3081,10 +3098,12 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
                 if picture_bitrate_max_mbs
                   if picture_bitrate_max_mbs > PictureBitrateMaxDCI
                     if picture_bitrate_max_mbs > PictureBitrateMaxHFR
-                      errors << "#{ cpl_reel }: #{ asset.node_name } bitrate maximum #{ meta[ 'Max BitRate' ] } exceeds DCI and HFR maxima (#{ PictureBitrateMaxDCI } and #{ PictureBitrateMaxHFR } Mb/s)"
+                      #CINEGO Edit : hints instead of errors
+                      hints << "#{ cpl_reel }: #{ asset.node_name } bitrate maximum #{ meta[ 'Max BitRate' ] } exceeds DCI and HFR maxima (#{ PictureBitrateMaxDCI } and #{ PictureBitrateMaxHFR } Mb/s)"
                       cpl_errors = true
                     elsif picture_bitrate_max_mbs <= PictureBitrateMaxHFR
-                      errors << "#{ cpl_reel }: #{ asset.node_name } bitrate maximum #{ meta[ 'Max BitRate' ] } exceeds DCI maximum (#{ PictureBitrateMaxDCI } Mb/s)"
+                      #CINEGO Edit : hints instead of errors
+                      hints << "#{ cpl_reel }: #{ asset.node_name } bitrate maximum #{ meta[ 'Max BitRate' ] } exceeds DCI maximum (#{ PictureBitrateMaxDCI } Mb/s)"
                       cpl_errors = true
                       hints << "#{ cpl_reel }: #{ asset.node_name } bitrate maximum #{ meta[ 'Max BitRate' ] } exceeds DCI maximum (#{ PictureBitrateMaxDCI } Mb/s). Playback might fail on DCI systems. Playback might work on HFR systems"
                     end
@@ -3141,8 +3160,9 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
                 audio_channel_count = meta[ 'ChannelCount' ].to_i
                 case audio_channel_count
                 when 1, 3, 4, 5, 7
-                  errors << "#{ cpl_reel }: MainSound has #{ amount( 'channel', audio_channel_count ) }: Use 5.1, 7.1, 7.1DS or wild track (2.0 is expected to mostly work)"
-                  cpl_errors = true
+                  #CINEGO Edit : hints instead of error
+                  hints << "#{ cpl_reel }: MainSound has #{ amount( 'channel', audio_channel_count ) }: Use 5.1, 7.1, 7.1DS or wild track (2.0 is expected to mostly work)"
+                  #cpl_errors = true
                   audio_channel_count_moniker = audio_channel_count.to_s
                 when 2
                   hints << "#{ cpl_reel }: MainSound has 2 channels: Expected to mostly work. Use 5.1, 7.1, 7.1DS or wild track to make sure"
@@ -3161,8 +3181,9 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
                 # Block align
                 audio_block_align = meta[ 'BlockAlign' ].to_i
                 if audio_block_align != audio_channel_count * 3 # don't use audio_quantization_bits here -- anything other than 24 bps is an error
-                  errors << "#{ cpl_reel }: MainSound has unexpected BlockAlign value #{ audio_block_align }: Expected #{ audio_channel_count * 3 }: Check audio source"
-                  cpl_errors = true
+                  #CINEGO Edit : hints instead of errors
+                  hints << "#{ cpl_reel }: MainSound has unexpected BlockAlign value #{ audio_block_align }: Expected #{ audio_channel_count * 3 }: Check audio source"
+                  #cpl_errors = true
                 end
 
                 # Edit rate
@@ -3438,8 +3459,9 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
                   # duration (self) and last TimeOut
                   #
                   if last_time_out.to_i > duration
-                    errors << "#{ cpl_reel }: DCSubtitle #{ asset_id }: Last TimeOut #{ last_time_out.to_s } exceeds MainSubtitle duration #{ Timecode.new( duration, edit_rate ).to_s }"
-                    cpl_errors = true
+                    #CINEGO Edit : hints instead of error
+                    hints << "#{ cpl_reel }: DCSubtitle #{ asset_id }: Last TimeOut #{ last_time_out.to_s } exceeds MainSubtitle duration #{ Timecode.new( duration, edit_rate ).to_s }"
+                    #cpl_errors = true
                   end
                   #
                   # reel duration (preliminary) and last TimeOut
@@ -3448,12 +3470,14 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
                     begin
                       reel_duration_prelim = Timecode.new( durations[ 0 .. -2 ].min, edit_rates[ 0 .. -2 ].min )
                       if last_time_out > reel_duration_prelim
-                        errors << "#{ cpl_reel }: DCSubtitle #{ asset_id }: Last TimeOut #{ last_time_out.to_s } exceeds reel duration #{ reel_duration_prelim }"
-                        cpl_errors = true
+                        #CINEGO Edit : hints instead of error
+                        hints << "#{ cpl_reel }: DCSubtitle #{ asset_id }: Last TimeOut #{ last_time_out.to_s } exceeds reel duration #{ reel_duration_prelim }"
+                        #cpl_errors = true
                       end
                     rescue Exception => e
-                      errors << "#{ cpl_reel }: DCSubtitle #{ asset_id }: Timecode: #{ e.message }"
-                      cpl_errors = true
+                      #CINEGO Edit : hints instead of error
+                      hints << "#{ cpl_reel }: DCSubtitle #{ asset_id }: Timecode: #{ e.message }"
+                      #cpl_errors = true
                     end
                   end
 
@@ -3503,8 +3527,9 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
                           asset_pick = dict.select { |k, v| v =~ Regexp.new( asset_name ) }
 
                           if asset_pick.empty?
-                            errors << "#{ cpl_reel }: DCSubtitle: #{ spot_number ? 'SpotNumber ' + spot_number + ': ' : '' }Referenced subtitle image #{ asset_name.inspect } not in AssetMap"
-                            cpl_errors = true
+                            #CINEGO Edit : hints instead of errors
+                            hints << "#{ cpl_reel }: DCSubtitle: #{ spot_number ? 'SpotNumber ' + spot_number + ': ' : '' }Referenced subtitle image #{ asset_name.inspect } not in AssetMap"
+                            #cpl_errors = true
                           else
                             unless File.exists?( package asset_pick.values.first ) # FIXME
                               errors << "#{ cpl_reel }: DCSubtitle: #{ spot_number ? 'SpotNumber ' + spot_number + ': ' : '' }Referenced subtitle image #{ asset_name.inspect } not found on the medium"
@@ -3532,8 +3557,9 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
                             # Check for font max size recommendation
                             font_asset_size = File.size font_asset
                             if font_asset_size > 655360 # 640 KB
-                              errors << "#{ cpl_reel }: DCSubtitle: Font #{ font_asset } size #{ font_asset_size.to_k } exceeds 640 KB"
-                              cpl_errors = true
+                              #CINEGO Edit : hints instead of errors
+                              hints << "#{ cpl_reel }: DCSubtitle: Font #{ font_asset } size #{ font_asset_size.to_k } exceeds 640 KB"
+                              #cpl_errors = true
                             end
                             # Get font name
                             begin
@@ -3563,17 +3589,20 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
                                 hints << "#{ cpl_reel }: DCSubtitle: Font #{ font_asset } is missing some required glyphs"
                               end
                             rescue NoMethodError => e
-                              errors << "#{ cpl_reel }: DCSubtitle: Referenced font #{ font_asset } not valid: #{ e.message }"
+                              #CINEGO Edit : hints instead of errors
+                              hints << "#{ cpl_reel }: DCSubtitle: Referenced font #{ font_asset } not valid: #{ e.message }"
                               cpl_errors = true
                             end
                           else
-                            errors << "#{ cpl_reel }: DCSubtitle: Font #{ font_asset } referenced in LoadFont is neither #{ MStr::TTF } nor #{ MStr::OTF }"
+                            #CINEGO Edit : hints instead of errors
+                            hints << "#{ cpl_reel }: DCSubtitle: Font #{ font_asset } referenced in LoadFont is neither #{ MStr::TTF } nor #{ MStr::OTF }"
                             cpl_errors = true
                           end
                         end
                       else
-                        errors << "#{ cpl_reel }: DCSubtitle: Referenced font #{ font_asset } not in AssetMap"
-                        cpl_errors = true
+                        #CINEGO Edit : hints instead of errors
+                        hints << "#{ cpl_reel }: DCSubtitle: Referenced font #{ font_asset } not in AssetMap"
+                        #cpl_errors = true
                       end
                       if load_font_el.size > 1
                         hints << "#{ cpl_reel }: DCSubtitle: Found multiple LoadFont elements. Playback will use 1st: #{ load_font_uri }"
@@ -3735,14 +3764,16 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
     # Check reel's duration sanity
     if durations.uniq.size != 1
       reels_report << "\tDuration mismatch"
-      errors << "#{ cpl_reel }: Duration mismatch: #{ durations.inspect }"
-      cpl_errors = true
+      #CINEGO Edit
+      hints << "#{ cpl_reel }: Duration mismatch: #{ durations.inspect }"
+      #cpl_errors = true
     else
       reel_duration = durations.first / edit_rates.min # gets it done but ugh
       if edit_rates.min > 0 and reel_duration < 1
         reels_report << "\tReel duration less than 1 second"
-        errors << "#{ cpl_reel }: Reel duration less than 1 second (#{ "%0.3f" % reel_duration } seconds, #{ amount( 'frame', durations.first.to_i ) }@#{ edit_rates.min } fps)"
-        cpl_errors = true
+        #CINEGO Edit
+        hints << "#{ cpl_reel }: Reel duration less than 1 second (#{ "%0.3f" % reel_duration } seconds, #{ amount( 'frame', durations.first.to_i ) }@#{ edit_rates.min } fps)"
+        #cpl_errors = true
       elsif edit_rates.min > 0 and reel_duration < 5 # Doremi TB 65 (2010-03-09)
         hints << "#{ cpl_reel }: Reel duration less than 5 seconds. Doremi TB 65 suggests a 5 second minimum for safe playback on Doremi systems"
       end
@@ -3798,8 +3829,9 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
     composition_type = ( cpl_referenced_assets_types.include?( MStr::AssetTypeUnknown ) ? MStr::AssetTypeUndetermined : assets_status_list.include?( false ) ? MStr::AssetTypeUndetermined : MStr::AssetTypeMixed )
     composition_summary[ :type ] = composition_type
     if broken_assets.size != 0
-      errors << "CPL #{ cpl_id }: Composition type: #{ composition_type }"
-      cpl_errors = true
+      #CINEGO Edit
+      hints << "CPL #{ cpl_id }: Composition type: #{ composition_type }"
+      #cpl_errors = true
     else
       hints << "CPL #{ cpl_id }: Composition type: #{ composition_type }: Supplemental/VF/External"
     end
@@ -3840,7 +3872,8 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
     errors << "CPL #{ cpl_id }: Failed to read DecompositionLevels from picture essence. Should not happen"
     cpl_errors = true
   else
-    errors << "CPL #{ cpl_id }: Found inconsistent image DecompositionLevels values across the composition (#{ composition_picture_decomposition_levels.each_with_index.map { |v, index| 'Reel ' + ( index + 1 ).to_s + ': ' + v.to_s }.join( ', ' ) }). This will produce visual artefacts in reel transitions"
+    #CINEGO Edit : hints instead of error
+    hints << "CPL #{ cpl_id }: Found inconsistent image DecompositionLevels values across the composition (#{ composition_picture_decomposition_levels.each_with_index.map { |v, index| 'Reel ' + ( index + 1 ).to_s + ': ' + v.to_s }.join( ', ' ) }). This will produce visual artefacts in reel transitions"
     cpl_errors = true
   end
 
@@ -3924,7 +3957,8 @@ def cpl_inspect_xml( xml, dict, audio_stats, package_dir, errors, hints, info, o
     errors << "CPL #{ cpl_id }: Failed to read sound ChannelFormat values from sound essence. Should not happen"
     cpl_errors = true
   else
-    errors << "CPL #{ cpl_id }: Found inconsistent sound ChannelFormat values across the composition (#{ composition_sound_channel_formats.each_with_index.map { |v, index| 'Reel ' + ( index + 1 ).to_s + ': ' + v.to_s }.join( ', ' ) }). Playback will fail completely"
+    # CINEGO Edit : hints instead of errors
+    hints << "CPL #{ cpl_id }: Found inconsistent sound ChannelFormat values across the composition (#{ composition_sound_channel_formats.each_with_index.map { |v, index| 'Reel ' + ( index + 1 ).to_s + ': ' + v.to_s }.join( ', ' ) }). Playback will fail completely"
     cpl_errors = true
   end
 
@@ -4195,16 +4229,19 @@ def dcp_inspect( options, arg )
       case am_ns
       when MStr::Smpte_am
         unless File.basename( am_file ) == 'ASSETMAP.xml'
-          errors << "AM #{ am_id }: #{ am_file.inspect }: SMPTE Assetmap file cannot be named #{ File.basename( am_file ).inspect }. Must be named \"ASSETMAP.xml\""
-          am_errors = true
+          #CINEGO Edit : hints instead of error
+          hints << "AM #{ am_id }: #{ am_file.inspect }: SMPTE Assetmap file cannot be named #{ File.basename( am_file ).inspect }. Must be named \"ASSETMAP.xml\""
+          #am_errors = true
         end
       when MStr::Interop_am
         unless File.basename( am_file ) == 'ASSETMAP'
-          errors << "AM #{ am_id }: #{ am_file.inspect }: Interop Assetmap file cannot be named #{ File.basename( am_file ).inspect }. Must be named \"ASSETMAP\""
-          am_errors = true
+          #CINEGO Edit : hints instead of error
+          hints << "AM #{ am_id }: #{ am_file.inspect }: Interop Assetmap file cannot be named #{ File.basename( am_file ).inspect }. Must be named \"ASSETMAP\""
+          #am_errors = true
         end
       else
-        errors << "AM #{ am_id }: #{ am_file.inspect }: Alleged AM file has invalid namespace #{ am_ns.inspect }"
+        #CINEGO Edit : hints instead of error
+        hints << "AM #{ am_id }: #{ am_file.inspect }: Alleged AM file has invalid namespace #{ am_ns.inspect }"
         am_errors = true
       end
 
@@ -4253,7 +4290,7 @@ def dcp_inspect( options, arg )
                 am_errors = true
               end
               if listed_id.downcase != asset_id.downcase
-                errors << "AM #{ am_id }: UUID mismatch: #{ asset_file }: Listed: #{ listed_id } Asset: #{ asset_id }" 
+                errors << "AM #{ am_id }: UUID mismatch: #{ asset_file }: Listed: #{ listed_id } Asset: #{ asset_id }"
                 am_errors = true
               else
                 if listed_id != asset_id
@@ -4918,4 +4955,3 @@ rescue ArgumentError => error
   graceful_shutdown( options, args, crash = true )
   exit RUBY_ARGUMENT_ERROR
 end
-
