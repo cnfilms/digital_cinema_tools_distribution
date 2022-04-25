@@ -2102,9 +2102,9 @@ class Eta
   def update_terminal( percentage )
     update( percentage )
     line = bar
-    if @terminal_size and line.length > @terminal_size[ :columns ]
-      line = ' [...] ' + line[ line.length - @terminal_size[ :columns ] + 9 .. -1 ]
-    end
+    #if @terminal_size and line.length > @terminal_size[ :columns ]
+    #  line = ' [...] ' + line[ line.length - @terminal_size[ :columns ] + 9 .. -1 ]
+    #end
     @output.cr( "%s\r" % line )
   end
 
