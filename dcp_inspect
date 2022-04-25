@@ -2157,9 +2157,9 @@ end
 def detect_terminal_size
   if command_exists?( 'tput' )
     nb_columns = `tput cols`.to_i
-    nb_lines = `tput lines`.to_i
+    nb_columns = `tput lines`.to_i
     if nb_columns > 0 and nb_lines > 0
-        return { :columns => cols, :lines => lines }
+        return { :columns => nb_columns, :lines => nb_columns }
     end
   end
   return { :columns => TerminalDefaultCols, :lines => TerminalDefaultLines }
